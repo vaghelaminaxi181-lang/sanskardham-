@@ -3,118 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sanskardham Staff Portal</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <title>Staff & Duty Management</title>
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; }
-        body { font-family: 'Poppins', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        
-        /* Header Theme from Image */
-        .header { width: 100%; background: linear-gradient(135deg, #1e40af, #3b82f6); padding: 40px 20px; border-bottom-left-radius: 50px; border-bottom-right-radius: 50px; text-align: center; color: white; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .header h1 { margin: 0; font-size: 28px; letter-spacing: 2px; text-transform: uppercase; }
-        .date-badge { background: rgba(255,255,255,0.15); padding: 10px 20px; border-radius: 30px; margin-top: 20px; display: inline-block; font-size: 16px; border: 1px solid rgba(255,255,255,0.3); }
-
-        /* Login Card */
-        .login-container { width: 90%; max-width: 400px; margin-top: -30px; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); text-align: center; }
-        .hospital-icon { width: 80px; margin-bottom: 15px; }
-        h2 { color: #1e293b; margin-bottom: 5px; font-size: 24px; }
-        p { color: #64748b; font-size: 14px; margin-bottom: 25px; }
-
-        .input-group { margin-bottom: 15px; text-align: left; position: relative; }
-        input { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; font-size: 16px; box-sizing: border-box; background: #f1f5f9; transition: 0.3s; }
-        input:focus { outline: none; border-color: #3b82f6; background: white; }
-
-        .btn { width: 100%; padding: 15px; border-radius: 15px; border: none; background: linear-gradient(to right, #1e40af, #3b82f6); color: white; font-size: 18px; font-weight: 600; cursor: pointer; box-shadow: 0 5px 15px rgba(37,99,235,0.3); }
-        
-        .footer { margin-top: auto; padding: 20px; font-size: 12px; font-weight: bold; color: #1e3a8a; letter-spacing: 1px; text-transform: uppercase; }
-
-        /* Suggestion Box */
-        .suggestions { position: absolute; width: 100%; background: white; border: 1px solid #ddd; border-radius: 10px; z-index: 100; max-height: 150px; overflow-y: auto; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .suggestions div { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; }
-        .suggestions div:hover { background: #f0f7ff; }
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { cursor: pointer; background-color: #28a745; color: white; font-weight: bold; border: none; }
+        .admin-section { display: none; border-top: 2px solid #eee; margin-top: 20px; padding-top: 10px; }
+        .staff-list { list-style: none; padding: 0; }
+        .staff-item { display: flex; justify-content: space-between; background: #f9f9f9; padding: 5px 10px; margin-bottom: 5px; border-radius: 3px; }
+        .delete-btn { background: #dc3545; width: auto; padding: 2px 8px; margin: 0; }
+        datalist { width: 100%; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>SANSKARDHAM</h1>
-        <div class="date-badge" id="current-date">05/04/2026</div>
+<div class="container">
+    <h2>Duty Management</h2>
+    
+    <label>સ્ટાફનું નામ:</label>
+    <input list="staffNames" id="staffInput" placeholder="નામ ટાઈપ કરો...">
+    <datalist id="staffNames"></datalist>
+
+    <label>ડ્યુટીની વિગત:</label>
+    <input type="text" id="dutyTask" placeholder="ડ્યુટી લખો...">
+    
+    <button onclick="saveDuty()">ડ્યુટી સેવ કરો</button>
+    <button style="background-color: #007bff;" onclick="copyYesterdayDuty()">ગઈકાલની ડ્યુટી કોપી કરો</button>
+
+    <hr>
+
+    <button style="background-color: #6c757d;" onclick="checkAdmin()">Admin Panel (Setting)</button>
+
+    <div id="adminPanel" class="admin-section">
+        <h3>Staff Management</h3>
+        <input type="text" id="newStaffName" placeholder="નવું નામ ઉમેરો">
+        <button onclick="addStaff()">Add Staff</button>
+        
+        <ul id="displayStaffList" class="staff-list"></ul>
     </div>
+</div>
 
-    <div class="login-container">
-        <img src="https://cdn-icons-png.flaticon.com/512/3304/3304567.png" class="hospital-icon" alt="hospital">
-        <h2>Staff Portal</h2>
-        <p>તમારી વિગત ભરો</p>
+<script>
+    // --- Initial Data Load ---
+    let staffList = JSON.parse(localStorage.getItem('staffList')) || ["Suresh", "Ramesh"];
+    let duties = JSON.parse(localStorage.getItem('duties')) || [];
 
-        <div class="input-group">
-            <input type="text" id="staff-name" placeholder="તમારું નામ લખો..." autocomplete="off">
-            <div id="suggestion-box" class="suggestions"></div>
-        </div>
-
-        <div class="input-group">
-            <input type="number" id="staff-mobile" placeholder="મોબાઈલ નંબર">
-        </div>
-
-        <div class="input-group">
-            <input type="password" id="admin-pass" placeholder="Admin Password (જો હોય તો)">
-        </div>
-
-        <button class="btn" onclick="handleLogin()">ચાલુ કરો (Login)</button>
-    </div>
-
-    <div class="footer">JATIN SOLANKI BY VISION</div>
-
-    <script>
-        // Firebase Config - (જતિનભાઈ અહિયાં તમારી લિંક નાખજો)
-        const firebaseConfig = { databaseURL: "https://sanskardham-duty-default-rtdb.firebaseio.com/" };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        // સ્ટાફ લિસ્ટ
-        const staffList = ["Shubhash", "Jadav Ravi", "Vaghela Payal", "Ajay Dabhi", "Radha Vaghela", "Kiran Jadav", "Upendra", "Rathod Vaidehi", "Hasamukh Chavada", "Labham Trivedi", "Minaxi", "Sunil"];
-
-        // Date Display
-        document.getElementById('current-date').innerText = new Date().toLocaleDateString('en-GB');
-
-        // Auto-complete Logic
-        const nameInput = document.getElementById('staff-name');
-        const suggBox = document.getElementById('suggestion-box');
-
-        nameInput.addEventListener('input', (e) => {
-            let val = e.target.value.toLowerCase();
-            suggBox.innerHTML = '';
-            if(!val) { suggBox.style.display = 'none'; return; }
-            
-            let matches = staffList.filter(s => s.toLowerCase().includes(val));
-            if(matches.length > 0) {
-                matches.forEach(m => {
-                    let div = document.createElement('div');
-                    div.innerText = m;
-                    div.onclick = () => { nameInput.value = m; suggBox.style.display = 'none'; };
-                    suggBox.appendChild(div);
-                });
-                suggBox.style.display = 'block';
-            } else {
-                suggBox.style.display = 'none';
-            }
-        });
-
-        function handleLogin() {
-            const name = nameInput.value;
-            const pass = document.getElementById('admin-pass').value;
-
-            if(!name) { alert("મહેરબાની કરી નામ લખો"); return; }
-
-            if(pass === "14052001") {
-                alert("Welcome Admin! Redirecting to setup...");
-                // અહિયાં એડમિન પેજની લિંક આવશે
-            } else {
-                alert(name + ", તમારી ડ્યુટી ચેક કરી રહ્યા છીએ...");
-                // અહિયાં સ્ટાફ વ્યુ પેજ આવશે
-            }
+    // --- Security: Admin Access ---
+    function checkAdmin() {
+        const pass = prompt("એડમિન પાસવર્ડ નાખો:");
+        if (pass === "14052001") {
+            document.getElementById('adminPanel').style.display = 'block';
+            renderStaffList();
+        } else {
+            alert("ખોટો પાસવર્ડ!");
         }
-    </script>
+    }
+
+    // --- Staff Management (Add/Delete) ---
+    function addStaff() {
+        const name = document.getElementById('newStaffName').value.trim();
+        if (name && !staffList.includes(name)) {
+            staffList.push(name);
+            saveAndRefresh();
+            document.getElementById('newStaffName').value = "";
+        }
+    }
+
+    function deleteStaff(index) {
+        if(confirm("શું તમે આ નામ કાઢી નાખવા માંગો છો?")) {
+            staffList.splice(index, 1);
+            saveAndRefresh();
+        }
+    }
+
+    function saveAndRefresh() {
+        localStorage.setItem('staffList', JSON.stringify(staffList));
+        renderStaffList();
+        renderDataList();
+    }
+
+    // --- UI Rendering ---
+    function renderStaffList() {
+        const listEl = document.getElementById('displayStaffList');
+        listEl.innerHTML = staffList.map((s, index) => `
+            <li class="staff-item">
+                ${s} <button class="delete-btn" onclick="deleteStaff(${index})">X</button>
+            </li>
+        `).join('');
+    }
+
+    function renderDataList() {
+        const dataList = document.getElementById('staffNames');
+        dataList.innerHTML = staffList.map(s => `<option value="${s}">`).join('');
+    }
+
+    // --- Duty Functions ---
+    function saveDuty() {
+        const name = document.getElementById('staffInput').value;
+        const task = document.getElementById('dutyTask').value;
+        const date = new Date().toLocaleDateString();
+
+        if(name && task) {
+            duties.push({ name, task, date });
+            localStorage.setItem('duties', JSON.stringify(duties));
+            alert("ડ્યુટી સેવ થઈ ગઈ!");
+        }
+    }
+
+    // --- Copy Yesterday's Duty Logic ---
+    function copyYesterdayDuty() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toLocaleDateString();
+        const todayStr = new Date().toLocaleDateString();
+
+        const yesterdayDuties = duties.filter(d => d.date === yesterdayStr);
+
+        if (yesterdayDuties.length > 0) {
+            yesterdayDuties.forEach(d => {
+                duties.push({ ...d, date: todayStr });
+            });
+            localStorage.setItem('duties', JSON.stringify(duties));
+            alert("ગઈકાલની ડ્યુટી આજની તારીખમાં કોપી થઈ ગઈ!");
+        } else {
+            alert("ગઈકાલનો કોઈ ડેટા મળ્યો નથી.");
+        }
+    }
+
+    // Initialize Suggestion List on Load
+    renderDataList();
+
+</script>
+
 </body>
 </html>
