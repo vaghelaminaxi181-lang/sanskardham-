@@ -2,139 +2,345 @@
 <html lang="gu">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff & Duty Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sanskardham Duty Portal</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        input, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { cursor: pointer; background-color: #28a745; color: white; font-weight: bold; border: none; }
-        .admin-section { display: none; border-top: 2px solid #eee; margin-top: 20px; padding-top: 10px; }
-        .staff-list { list-style: none; padding: 0; }
-        .staff-item { display: flex; justify-content: space-between; background: #f9f9f9; padding: 5px 10px; margin-bottom: 5px; border-radius: 3px; }
-        .delete-btn { background: #dc3545; width: auto; padding: 2px 8px; margin: 0; }
-        datalist { width: 100%; }
+        :root { --primary: #2563eb; --primary-dark: #1e40af; --bg: #f8fafc; --shadow: rgba(0,0,0,0.1); }
+        body { font-family: 'Poppins', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; color: #1e293b; overflow-x: hidden; touch-action: manipulation; }
+        
+        /* Gradient Header & Date Badge */
+        .header { width: 100%; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); padding: 30px 20px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; text-align: center; color: white; box-shadow: 0 10px 30px var(--shadow); position: relative; z-index: 10; box-sizing: border-box; }
+        .header h1 { margin: 0; font-size: 26px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+        .header p { margin: 5px 0 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+        
+        .date-container { margin-top: 15px; background: rgba(0,0,0,0.1); padding: 8px; border-radius: 15px; display: inline-flex; align-items: center; justify-content: center; width: 85%; max-width: 320px; box-sizing: border-box; }
+        #dateInput { background: transparent; border: none; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 700; color: white; cursor: pointer; outline: none; -webkit-appearance: none; }
+        .date-icon { font-size: 16px; margin-right: 8px; color: rgba(255,255,255,0.7); }
+
+        /* General Layout */
+        .content-container { width: 90%; max-width: 420px; padding: 20px 0; display: flex; flex-direction: column; }
+        .hidden { display: none !important; }
+
+        /* Login Card */
+        .card { width: 100%; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 15px 40px var(--shadow); box-sizing: border-box; margin-top: -30px; z-index: 5; text-align: center; }
+        .hospital-icon { width: 70px; margin-bottom: 15px; }
+        h2 { font-size: 22px; font-weight: 900; color: #0f172a; margin-bottom: 3px; }
+        .sub-text { font-size: 13px; color: #64748b; margin-bottom: 25px; }
+
+        .input-group { margin-bottom: 12px; text-align: left; position: relative; }
+        input[type="text"], input[type="number"], input[type="password"] { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; font-size: 15px; box-sizing: border-box; background: #f1f5f9; outline: none; font-weight: 600; }
+        input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus { border-color: var(--primary); background: white; }
+        
+        /* Auto-Suggestion Box */
+        .suggestions { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; border-radius: 10px; z-index: 100; max-height: 150px; overflow-y: auto; display: none; box-shadow: 0 4px 6px var(--shadow); }
+        .suggestions div { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 14px; font-weight: 600; color: #1e293b; }
+        .suggestions div:hover { background: #f0f7ff; color: var(--primary-dark); }
+
+        .btn { width: 100%; padding: 15px; border-radius: 15px; border: none; background: linear-gradient(to right, var(--primary-dark), var(--primary)); color: white; font-size: 16px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 8px 15px rgba(37,99,235,0.2); outline: none; transition: 0.2s ease; }
+        .btn:active { transform: translateY(2px); box-shadow: 0 4px 10px rgba(37,99,235,0.1); }
+        
+        /* Footer */
+        .footer { width: 100%; margin-top: auto; padding: 25px 0; text-align: center; font-size: 10px; font-weight: bold; color: #1e3a8a; letter-spacing: 4px; text-transform: uppercase; z-index: 5; border-t: 1px solid #e2e8f0; background: white; }
+
+        /* Department View / Admin Panel */
+        .page-header { display: flex; justify-content: space-between; items-center; margin-bottom: 20px; padding: 0 5px; }
+        .btn-view { padding: 8px 15px; border-radius: 20px; font-size: 11px; font-weight: 700; color: white; background: rgba(255,255,255,0.2); text-transform: uppercase; cursor: pointer; }
+        .admin-controls { display: flex; gap: 8px; align-items: center; }
+        .role-badge { background: #fee2e2; color: #ef4444; border-radius: 10px; padding: 4px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+
+        .missing-warning { background: #fff1f2; color: #e11d48; padding: 12px; border-radius: 15px; font-size: 12px; font-weight: 600; margin-bottom: 20px; border: 1px solid #fecdd3; text-align: center; }
+
+        .section-header { margin-top: 15px; padding: 0 5px 5px; display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .grid { display: grid; grid-template-cols: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        .grid-item { position: relative; background: white; padding: 20px; border-radius: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .grid-item:hover { border-color: var(--primary); box-shadow: 0 8px 20px rgba(37,99,235,0.1); }
+        .grid-item .icon { font-size: 30px; margin-bottom: 10px; display: block; }
+        .grid-item .title { font-size: 13px; font-weight: 700; color: #1e293b; text-transform: uppercase; }
+        .grid-item .count { font-size: 9px; color: #94a3b8; font-weight: 600; }
+        
+        /* Delete Icon for Dept */
+        .delete-dept-btn { position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; items-center; justify-content: center; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+        .info-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .info-card .label { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .info-card .value { font-size: 15px; font-weight: 700; color: #1e293b; }
+        
+        /* Modal for Setting/Admin Panel */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; items-center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .modal.open { opacity: 1; pointer-events: auto; }
+        .modal-content { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); position: relative; max-height: 80vh; overflow-y: auto; }
+        .modal-header { font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 20px; text-align: center; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; font-weight: bold; color: #94a3b8; cursor: pointer; }
+        .setting-section { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9; }
+        .setting-section h3 { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 10px; }
+        .staff-tag { display: inline-flex; align-items: center; background: #f1f5f9; color: #1e293b; padding: 5px 10px; border-radius: 20px; margin: 3px; font-size: 12px; font-weight: 600; }
+        .remove-staff { margin-left: 8px; color: #ef4444; font-weight: bold; cursor: pointer; }
+
+        @media screen and (max-width: 360px) {
+            .grid { gap: 10px; }
+            .grid-item { padding: 15px; }
+            .header h1 { font-size: 22px; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Duty Management</h2>
-    
-    <label>સ્ટાફનું નામ:</label>
-    <input list="staffNames" id="staffInput" placeholder="નામ ટાઈપ કરો...">
-    <datalist id="staffNames"></datalist>
+    <div id="appContainer" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+        </div>
 
-    <label>ડ્યુટીની વિગત:</label>
-    <input type="text" id="dutyTask" placeholder="ડ્યુટી લખો...">
-    
-    <button onclick="saveDuty()">ડ્યુટી સેવ કરો</button>
-    <button style="background-color: #007bff;" onclick="copyYesterdayDuty()">ગઈકાલની ડ્યુટી કોપી કરો</button>
+    <div class="footer">JATIN SOLANKI BY VISION</div>
 
-    <hr>
+    <script>
+        // FIREBASE CONNECTION - (જતિનભાઈ અહિયાં તમારી લિંક નાખજો)
+        const firebaseConfig = { databaseURL: "https://jatin-9a897-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-    <button style="background-color: #6c757d;" onclick="checkAdmin()">Admin Panel (Setting)</button>
+        // Admin Password & Shift
+        const ADMIN_PASS = "14052001";
+        const SHIFTS = { Day: "☀️ DAY", Night: "🌙 NIGHT" };
 
-    <div id="adminPanel" class="admin-section">
-        <h3>Staff Management</h3>
-        <input type="text" id="newStaffName" placeholder="નવું નામ ઉમેરો">
-        <button onclick="addStaff()">Add Staff</button>
+        // Dummy Data - તમે સેવ કરશો એટલે આ બદલાઈ જશે
+        const DUMMY_STAFF = [
+            { name: "Shubhash", mobile: "1234567890" },
+            { name: "Jadav Ravi", mobile: "9876543210" },
+            { name: "Minaxi", mobile: "9988776655" }
+        ];
+        const DUMMY_DEPTS = ["OPD", "OFF List", "EMARGENCY", "DAYCARE"];
+
+        // Global State
+        let state = {
+            view: "login", // login | guestView | adminView
+            selectedDate: new Date().toISOString().split('T')[0],
+            selectedShift: "Day",
+            currentUser: null, // { name: '', mobile: '', role: '' }
+            staffList: DUMMY_STAFF, 
+            deptList: DUMMY_DEPTS,
+            allDuty: {} // Firebase Duty Data
+        };
+
+        // Initialize App
+        window.onload = loadApp;
+
+        async function loadApp() {
+            // Restore session if exists
+            const savedState = JSON.parse(localStorage.getItem('j_state'));
+            if(savedState && savedState.selectedDate === state.selectedDate) state = {...state, ...savedState};
+            
+            await fetchInitialData();
+            render();
+        }
+
+        async function fetchInitialData() {
+            const dutySnap = await db.ref('duty').once('value'); state.allDuty = dutySnap.val() || {};
+            const staffSnap = await db.ref('settings/staff').once('value'); state.staffList = staffSnap.val() || DUMMY_STAFF;
+            const deptSnap = await db.ref('settings/depts').once('value'); state.deptList = deptSnap.val() || DUMMY_DEPTS;
+        }
+
+        function saveSession() { localStorage.setItem('j_state', JSON.stringify({ view: state.view, currentUser: state.currentUser, selectedShift: state.selectedShift })); }
+
+        function render() {
+            const container = document.getElementById('appContainer');
+            container.innerHTML = `
+                ${state.view !== "login" ? renderDynamicHeader() : ""}
+                ${state.view === "login" ? renderLogin() : ""}
+                ${state.view === "guestView" || state.view === "adminView" ? renderDashboard() : ""}
+            `;
+            if(state.view === "login") document.getElementById('footerContainer').classList.remove('hidden'); else document.getElementById('footerContainer').classList.add('hidden');
+        }
+
+        // --- RENDER FUNCTIONS ---
+
+        function renderDynamicHeader() {
+            const isAdmin = state.view === "adminView";
+            return `
+                <div class="header">
+                    <div class="page-header">
+                        <div>
+                            <h1>SANSKARDHAM</h1>
+                            <p>${state.currentUser.name} (${isAdmin ? `Admin` : `Staff`})</p>
+                        </div>
+                        <div class="admin-controls">
+                            ${isAdmin ? `<div class="role-badge">ADMIN</div>` : ""}
+                            <div onclick="logout()" class="btn-view" style="color:#fee2e2;">Logout</div>
+                        </div>
+                    </div>
+                    <div class="date-container">
+                        <span class="date-icon">📅</span>
+                        <input type="date" id="dateInput" value="${state.selectedDate}" onchange="changeDate(this.value)">
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLogin() {
+            return `
+                <div class="header">
+                    <h1>SANSKARDHAM</h1>
+                    <p>HOSPITAL DUTY MANAGEMENT</p>
+                </div>
+                <div class="content-container">
+                    <div class="card">
+                        <img src="https://cdn-icons-png.flaticon.com/512/3304/3304567.png" class="hospital-icon" alt="hospital">
+                        <h2>Staff Portal</h2>
+                        <p class="sub-text">તમારી વિગત ભરો</p>
+
+                        <div class="input-group">
+                            <input type="text" id="sName" placeholder="તમારું નામ" autocomplete="off" oninput="showSuggestions(this.value)">
+                            <div id="suggestionBox" class="suggestions"></div>
+                        </div>
+                        <div class="input-group"><input type="number" id="sMobile" placeholder="મોબાઈલ નંબર"></div>
+                        <div class="input-group"><input type="password" id="aPass" placeholder="Admin Password (જો હોય તો)"></div>
+                        <button class="btn" onclick="login()">ચાલુ કરો (Login)</button>
+                    </div>
+                </div>
+                <div style="height:100px;"></div>
+            `;
+        }
+
+        function renderDashboard() {
+            const isAdmin = state.view === "adminView";
+            const todayDuty = state.allDuty[state.selectedDate] || {};
+            const missingStaff = isAdmin ? calculateMissingStaff(todayDuty) : [];
+
+            return `
+                <div class="content-container" style="margin-top:-20px;">
+                    ${missingStaff.length > 0 ? `<div class="missing-warning">📢 ${missingStaff.length} સ્ટાફની ડ્યુટી બાકી છે: ${missingStaff.join(', ')}</div>` : ""}
+                    
+                    <div class="section-header">
+                        <div>ડિપાર્ટમેન્ટ લિસ્ટ</div>
+                        <div class="admin-controls">
+                            ${isAdmin ? `<button onclick="copyDuty()" class="btn-view" style="font-size:10px; padding:6px 12px; margin-right:5px; background:white; color:var(--primary);">COPY YESTERDAY</button>` : ""}
+                            ${isAdmin ? `<button onclick="addNewDept()" class="btn-view" style="background:#10b981;">+ DEPT</button>` : ""}
+                        </div>
+                    </div>
+
+                    <div class="grid">
+                        ${state.deptList.map(d => renderDeptItem(d, todayDuty)).join('')}
+                    </div>
+
+                    ${isAdmin ? `<button onclick="openModal()" class="btn" style="background:#4b5563; margin-top:10px;">Setting (Admin Panel)</button>` : ""}
+                </div>
+                <div style="height:150px;"></div>
+                ${isAdmin ? renderAdminModal() : ""}
+            `;
+        }
+
+        function renderDeptItem(deptName, todayDuty) {
+            const isAdmin = state.view === "adminView";
+            const currentStaff = todayDuty[deptName] || "---";
+            const icon = deptName === "OFF List" ? "😴" : "🏥";
+            return `
+                <div class="grid-item" onclick="openDeptEditor('${deptName}')">
+                    ${isAdmin ? `<div class="delete-dept-btn" onclick="deleteDept('${deptName}'); event.stopPropagation();">×</div>` : ""}
+                    <span class="icon">${icon}</span>
+                    <span class="title">${deptName}</span>
+                    <span class="count">${currentStaff}</span>
+                </div>
+            `;
+        }
+
+        // --- CORE FUNCTIONS ---
+
+        function login() {
+            const name = document.getElementById('sName').value.trim();
+            const mobile = document.getElementById('sMobile').value.trim();
+            const pass = document.getElementById('aPass').value.trim();
+
+            const staffMatch = state.staffList.find(s => s.name === name && s.mobile === mobile);
+
+            if(!name || !mobile) { alert("નામ અને મોબાઈલ નંબર લખો"); return; }
+            if(!staffMatch && pass !== ADMIN_PASS) { alert("સ્ટાફની વિગત ખોટી છે"); return; }
+
+            if(pass === ADMIN_PASS) {
+                state.view = "adminView";
+                state.currentUser = { name: "Jatin", mobile: "", role: "admin" };
+            } else {
+                state.view = "guestView";
+                state.currentUser = { name: staffMatch.name, mobile: staffMatch.mobile, role: "staff" };
+            }
+            saveSession();
+            render();
+        }
+
+        function logout() { state.view = "login"; state.currentUser = null; saveSession(); render(); }
         
-        <ul id="displayStaffList" class="staff-list"></ul>
-    </div>
-</div>
+        function changeDate(newDate) { state.selectedDate = newDate; render(); }
 
-<script>
-    // --- Initial Data Load ---
-    let staffList = JSON.parse(localStorage.getItem('staffList')) || ["Suresh", "Ramesh"];
-    let duties = JSON.parse(localStorage.getItem('duties')) || [];
+        // --- GUEST VIEW FUNCTIONS ---
+        // (Staff can view but not edit duty)
+        function openDeptEditor(dept) { if(state.view !== "adminView") return; const newVal = prompt(`${dept} માટે સ્ટાફ પસંદ કરો:`); if(newVal) setDuty(dept, newVal); }
+        function setDuty(dept, staffName) { db.ref(`duty/${state.selectedDate}/${dept}`).set(staffName); state.allDuty[state.selectedDate] = { ...state.allDuty[state.selectedDate], [dept]: staffName }; render(); }
 
-    // --- Security: Admin Access ---
-    function checkAdmin() {
-        const pass = prompt("એડમિન પાસવર્ડ નાખો:");
-        if (pass === "14052001") {
-            document.getElementById('adminPanel').style.display = 'block';
-            renderStaffList();
-        } else {
-            alert("ખોટો પાસવર્ડ!");
+        // --- ADMIN PANEL FUNCTIONS ---
+        function calculateMissingStaff(todayDuty) {
+            const currentDutyStaff = Object.values(todayDuty);
+            const missing = state.staffList.filter(s => !currentDutyStaff.includes(s.name));
+            return missing.map(s => s.name);
         }
-    }
 
-    // --- Staff Management (Add/Delete) ---
-    function addStaff() {
-        const name = document.getElementById('newStaffName').value.trim();
-        if (name && !staffList.includes(name)) {
-            staffList.push(name);
-            saveAndRefresh();
-            document.getElementById('newStaffName').value = "";
+        async function copyDuty() {
+            const yesterdayDate = new Date(state.selectedDate); yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            const yesterISO = yesterdayDate.toISOString().split('T')[0];
+            const yesterSnap = await db.ref(`duty/${yesterISO}`).once('value');
+            if(yesterSnap.exists()) { db.ref(`duty/${state.selectedDate}`).set(yesterSnap.val()); alert("ડ્યુટી કોપી થઈ ગઈ!"); state.allDuty[state.selectedDate] = yesterSnap.val(); render(); } else { alert("ગઈકાલે કોઈ ડ્યુટી નથી"); }
         }
-    }
 
-    function deleteStaff(index) {
-        if(confirm("શું તમે આ નામ કાઢી નાખવા માંગો છો?")) {
-            staffList.splice(index, 1);
-            saveAndRefresh();
+        function addNewDept() { const n = prompt("નવા ડિપાર્ટમેન્ટનું નામ:"); if(n) { state.deptList.push(n); db.ref('settings/depts').set(state.deptList); render(); } }
+
+        // NEW: Function to delete Department, only allowed for Admin
+        function deleteDept(deptName) {
+            if(state.view !== "adminView") return; 
+            if(!confirm(`${deptName} ડીલીટ કરવો છે?`)) return;
+            state.deptList = state.deptList.filter(d => d !== deptName);
+            db.ref('settings/depts').set(state.deptList);
+            render();
         }
-    }
 
-    function saveAndRefresh() {
-        localStorage.setItem('staffList', JSON.stringify(staffList));
-        renderStaffList();
-        renderDataList();
-    }
+        // --- STAFF SETTING MODAL ---
+        function openModal() { document.getElementById('settingModal').classList.add('open'); }
+        function closeModal() { document.getElementById('settingModal').classList.remove('open'); }
+        function addStaff() { const n = document.getElementById('newStaffName').value; const m = document.getElementById('newStaffMobile').value; if(n && m) { state.staffList.push({ name: n, mobile: m }); db.ref('settings/staff').set(state.staffList); document.getElementById('newStaffName').value=''; document.getElementById('newStaffMobile').value=''; renderModal(); } }
+        function removeStaff(staffName) { state.staffList = state.staffList.filter(s => s.name !== staffName); db.ref('settings/staff').set(state.staffList); renderModal(); }
 
-    // --- UI Rendering ---
-    function renderStaffList() {
-        const listEl = document.getElementById('displayStaffList');
-        listEl.innerHTML = staffList.map((s, index) => `
-            <li class="staff-item">
-                ${s} <button class="delete-btn" onclick="deleteStaff(${index})">X</button>
-            </li>
-        `).join('');
-    }
-
-    function renderDataList() {
-        const dataList = document.getElementById('staffNames');
-        dataList.innerHTML = staffList.map(s => `<option value="${s}">`).join('');
-    }
-
-    // --- Duty Functions ---
-    function saveDuty() {
-        const name = document.getElementById('staffInput').value;
-        const task = document.getElementById('dutyTask').value;
-        const date = new Date().toLocaleDateString();
-
-        if(name && task) {
-            duties.push({ name, task, date });
-            localStorage.setItem('duties', JSON.stringify(duties));
-            alert("ડ્યુટી સેવ થઈ ગઈ!");
+        function renderAdminModal() {
+            return `
+                <div id="settingModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-modal" onclick="closeModal()">×</span>
+                        <div class="modal-header">Setting (Admin Panel)</div>
+                        <div class="setting-section">
+                            <h3>નવો સ્ટાફ ઉમેરો</h3>
+                            <input type="text" id="newStaffName" placeholder="નામ" style="padding:10px; font-size:12px;">
+                            <input type="number" id="newStaffMobile" placeholder="મોબાઈલ નંબર" style="padding:10px; font-size:12px; margin-top:5px;">
+                            <button onclick="addStaff()" class="btn" style="padding:10px; font-size:12px; margin-top:8px; background:#10b981;">+ ADD</button>
+                        </div>
+                        <div class="setting-section">
+                            <h3>સ્ટાફ લિસ્ટ</h3>
+                            <div id="staffListContainer">
+                                ${state.staffList.map(s => `<div class="staff-tag">${s.name} <span class="remove-staff" onclick="removeStaff('${s.name}')">×</span></div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
-    }
+        function renderModal() { document.getElementById('settingModal').innerHTML = renderAdminModal().split('<div id="settingModal" class="modal">')[1].split('</div></div>')[0]; } // Dummy function to update only modal content
 
-    // --- Copy Yesterday's Duty Logic ---
-    function copyYesterdayDuty() {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toLocaleDateString();
-        const todayStr = new Date().toLocaleDateString();
-
-        const yesterdayDuties = duties.filter(d => d.date === yesterdayStr);
-
-        if (yesterdayDuties.length > 0) {
-            yesterdayDuties.forEach(d => {
-                duties.push({ ...d, date: todayStr });
-            });
-            localStorage.setItem('duties', JSON.stringify(duties));
-            alert("ગઈકાલની ડ્યુટી આજની તારીખમાં કોપી થઈ ગઈ!");
-        } else {
-            alert("ગઈકાલનો કોઈ ડેટા મળ્યો નથી.");
+        // --- AUTO SUGGESTION LOGIC ---
+        function showSuggestions(val) {
+            const box = document.getElementById('suggestionBox'); box.innerHTML = '';
+            if(!val) { box.style.display = 'none'; return; }
+            const matches = state.staffList.filter(s => s.name.toLowerCase().includes(val.toLowerCase())).slice(0, 4);
+            if(matches.length > 0) {
+                matches.forEach(m => { const div = document.createElement('div'); div.innerText = m.name; div.onclick = () => { document.getElementById('sName').value = m.name; box.style.display = 'none'; }; box.appendChild(div); });
+                box.style.display = 'block';
+            } else { box.style.display = 'none'; }
         }
-    }
 
-    // Initialize Suggestion List on Load
-    renderDataList();
-
-</script>
-
+    </script>
 </body>
 </html>
