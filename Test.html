@@ -3,216 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sanskardham Staff Management</title>
-    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+    <title>Sanskardham Staff Portal</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --blue: #1e40af; --light: #f3f4f6; --red: #ef4444; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--light); margin: 0; padding: 0; }
-        .header { background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; padding: 25px; text-align: center; border-radius: 0 0 30px 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .container { padding: 15px; max-width: 600px; margin: auto; }
-        .card { background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 5px solid var(--blue); }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        button { background: var(--blue); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button.red { background: var(--red); }
-        .admin-panel { display: none; background: #fff; padding: 20px; border-radius: 20px; border: 2px solid var(--blue); margin-top: 20px; }
-        .tab-btn { display: inline-block; width: 48%; margin: 1%; background: #e5e7eb; color: #374151; }
-        .active-tab { background: var(--blue); color: white; }
-        .suggest-box { background: white; border: 1px solid #ddd; max-height: 150px; overflow-y: auto; position: absolute; width: 90%; z-index: 10; border-radius: 8px; }
-        .suggest-box div { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
-        .report-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
-        .report-table th, .report-table td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        .missing { color: var(--red); font-weight: bold; font-size: 14px; margin-top: 10px; }
+        :root { --primary: #2563eb; --bg: #f8fafc; }
+        body { font-family: 'Poppins', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        /* Header Theme from Image */
+        .header { width: 100%; background: linear-gradient(135deg, #1e40af, #3b82f6); padding: 40px 20px; border-bottom-left-radius: 50px; border-bottom-right-radius: 50px; text-align: center; color: white; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; font-size: 28px; letter-spacing: 2px; text-transform: uppercase; }
+        .date-badge { background: rgba(255,255,255,0.15); padding: 10px 20px; border-radius: 30px; margin-top: 20px; display: inline-block; font-size: 16px; border: 1px solid rgba(255,255,255,0.3); }
+
+        /* Login Card */
+        .login-container { width: 90%; max-width: 400px; margin-top: -30px; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); text-align: center; }
+        .hospital-icon { width: 80px; margin-bottom: 15px; }
+        h2 { color: #1e293b; margin-bottom: 5px; font-size: 24px; }
+        p { color: #64748b; font-size: 14px; margin-bottom: 25px; }
+
+        .input-group { margin-bottom: 15px; text-align: left; position: relative; }
+        input { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; font-size: 16px; box-sizing: border-box; background: #f1f5f9; transition: 0.3s; }
+        input:focus { outline: none; border-color: #3b82f6; background: white; }
+
+        .btn { width: 100%; padding: 15px; border-radius: 15px; border: none; background: linear-gradient(to right, #1e40af, #3b82f6); color: white; font-size: 18px; font-weight: 600; cursor: pointer; box-shadow: 0 5px 15px rgba(37,99,235,0.3); }
+        
+        .footer { margin-top: auto; padding: 20px; font-size: 12px; font-weight: bold; color: #1e3a8a; letter-spacing: 1px; text-transform: uppercase; }
+
+        /* Suggestion Box */
+        .suggestions { position: absolute; width: 100%; background: white; border: 1px solid #ddd; border-radius: 10px; z-index: 100; max-height: 150px; overflow-y: auto; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .suggestions div { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .suggestions div:hover { background: #f0f7ff; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>SANSKARDHAM</h1>
-    <p id="displayDate"></p>
-    <button onclick="toggleAdmin()" style="width:auto; padding:5px 15px; background:rgba(255,255,255,0.2);">ADMIN LOGIN</button>
-</div>
-
-<div class="container">
-    <div id="userSection" class="card">
-        <input type="text" id="userSearch" placeholder="તમારું નામ શોધો..." onkeyup="searchDuty()">
-        <div id="searchResult"></div>
+    <div class="header">
+        <h1>SANSKARDHAM</h1>
+        <div class="date-badge" id="current-date">05/04/2026</div>
     </div>
 
-    <div id="adminArea" class="admin-panel">
-        <input type="password" id="adminPass" placeholder="એડમિન પાસવર્ડ">
-        <hr>
-        <div>
-            <button class="tab-btn active-tab" id="btn1" onclick="showTab('duty')">ડ્યુટી મેનેજ</button>
-            <button class="tab-btn" id="btn2" onclick="showTab('staff')">સ્ટાફ એડિટ</button>
+    <div class="login-container">
+        <img src="https://cdn-icons-png.flaticon.com/512/3304/3304567.png" class="hospital-icon" alt="hospital">
+        <h2>Staff Portal</h2>
+        <p>તમારી વિગત ભરો</p>
+
+        <div class="input-group">
+            <input type="text" id="staff-name" placeholder="તમારું નામ લખો..." autocomplete="off">
+            <div id="suggestion-box" class="suggestions"></div>
         </div>
 
-        <div id="dutyTab">
-            <button style="background:#10b981;" onclick="copyLastDay()">ગઈકાલની ડ્યુટી કોપી કરો 📋</button>
-            <div style="position:relative;">
-                <input type="text" id="stName" placeholder="સ્ટાફનું નામ..." onkeyup="getSuggest(this.value)">
-                <div id="sugBox" class="suggest-box" style="display:none;"></div>
-            </div>
-            <select id="stDept">
-                <option value="ER">ER</option><option value="WARD">WARD</option>
-                <option value="GYNC">GYNC</option><option value="NICU">NICU</option>
-                <option value="OPD">OPD</option><option value="OT">OT</option>
-                <option value="OFF">OFF (રજા)</option>
-            </select>
-            <input type="text" id="stDuty" placeholder="ડ્યુટી ટાઈપ (M, N, D-M)">
-            <button onclick="saveDuty()">સેવ ડ્યુટી ✅</button>
-            <div class="missing">બાકી સ્ટાફ: <span id="missingNames">બધા સેટ છે</span></div>
+        <div class="input-group">
+            <input type="number" id="staff-mobile" placeholder="મોબાઈલ નંબર">
         </div>
 
-        <div id="staffTab" style="display:none;">
-            <h4>નવો સ્ટાફ ઉમેરો / સુધારો</h4>
-            <input type="text" id="newStaffName" placeholder="સ્ટાફનું પૂરું નામ">
-            <button onclick="addStaff()">સ્ટાફ એડ કરો +</button>
-            <div id="staffManageList" style="margin-top:15px; max-height:200px; overflow-y:auto;"></div>
+        <div class="input-group">
+            <input type="password" id="admin-pass" placeholder="Admin Password (જો હોય તો)">
         </div>
 
-        <button style="margin-top:20px; background:#6b7280;" onclick="genReport()">માસિક રિપોર્ટ જુઓ 📊</button>
+        <button class="btn" onclick="handleLogin()">ચાલુ કરો (Login)</button>
     </div>
 
-    <div id="reportView" style="display:none;">
-        <table class="report-table">
-            <thead><tr><th>નામ</th><th>ડ્યુટી</th><th>OFF</th></tr></thead>
-            <tbody id="reportTbody"></tbody>
-        </table>
-    </div>
+    <div class="footer">JATIN SOLANKI BY VISION</div>
 
-    <div id="liveList" style="margin-top:20px;"></div>
-</div>
+    <script>
+        // Firebase Config - (જતિનભાઈ અહિયાં તમારી લિંક નાખજો)
+        const firebaseConfig = { databaseURL: "https://sanskardham-duty-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-<script>
-    // --- FIREBASE CONFIG (તમારો ડેટા અહિયાં પેસ્ટ કરજો) ---
-    const firebaseConfig = { databaseURL: "https://sanskardham-duty-default-rtdb.firebaseio.com" };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+        // સ્ટાફ લિસ્ટ
+        const staffList = ["Shubhash", "Jadav Ravi", "Vaghela Payal", "Ajay Dabhi", "Radha Vaghela", "Kiran Jadav", "Upendra", "Rathod Vaidehi", "Hasamukh Chavada", "Labham Trivedi", "Minaxi", "Sunil"];
 
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('displayDate').innerText = "તારીખ: " + today;
+        // Date Display
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('en-GB');
 
-    let allStaff = [];
+        // Auto-complete Logic
+        const nameInput = document.getElementById('staff-name');
+        const suggBox = document.getElementById('suggestion-box');
 
-    // Load Staff from Firebase
-    db.ref('staffList').on('value', (snap) => {
-        allStaff = snap.val() ? Object.values(snap.val()) : [];
-        renderStaffEditList(snap.val());
-    });
-
-    function addStaff() {
-        let name = document.getElementById('newStaffName').value.trim();
-        if(!name) return;
-        db.ref('staffList').push(name);
-        document.getElementById('newStaffName').value = '';
-        alert('સ્ટાફ ઉમેરાઈ ગયો!');
-    }
-
-    function renderStaffEditList(data) {
-        let div = document.getElementById('staffManageList');
-        div.innerHTML = '';
-        for(let id in data) {
-            div.innerHTML += `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee;">
-                <span>${data[id]}</span>
-                <button class="red" style="width:60px; padding:2px;" onclick="db.ref('staffList/${id}').remove()">X</button>
-            </div>`;
-        }
-    }
-
-    function getSuggest(val) {
-        let box = document.getElementById('sugBox');
-        box.innerHTML = '';
-        if(!val) { box.style.display = 'none'; return; }
-        let filtered = allStaff.filter(s => s.toLowerCase().includes(val.toLowerCase()));
-        filtered.forEach(s => {
-            let d = document.createElement('div');
-            d.innerText = s;
-            d.onclick = () => { document.getElementById('stName').value = s; box.style.display = 'none'; };
-            box.appendChild(d);
-        });
-        box.style.display = 'block';
-    }
-
-    function saveDuty() {
-        if(document.getElementById('adminPass').value !== '14052001') { alert('ખોટો પાસવર્ડ!'); return; }
-        let name = document.getElementById('stName').value;
-        let dept = document.getElementById('stDept').value;
-        let duty = document.getElementById('stDuty').value;
-        if(!name || !duty) return alert('વિગત અધૂરી છે!');
-        db.ref('duty/' + today + '/' + name).set({ dept, duty });
-        document.getElementById('stName').value = ''; document.getElementById('stDuty').value = '';
-    }
-
-    function copyLastDay() {
-        let last = new Date(); last.setDate(last.getDate() - 1);
-        let lastStr = last.toISOString().split('T')[0];
-        db.ref('duty/' + lastStr).once('value', (s) => {
-            if(s.exists()) { db.ref('duty/' + today).set(s.val()); alert('કોપી સફળ!'); }
-        });
-    }
-
-    db.ref('duty/' + today).on('value', (snap) => {
-        let data = snap.val() || {};
-        let list = document.getElementById('liveList');
-        let mis = document.getElementById('missingNames');
-        list.innerHTML = '<h3>આજની ડ્યુટી લિસ્ટ</h3>';
-        let done = Object.keys(data);
-        let mNames = allStaff.filter(s => !done.includes(s));
-        mis.innerText = mNames.length > 0 ? mNames.join(', ') : "બધા સેટ છે";
-        for(let n in data) {
-            list.innerHTML += `<div class="card"><strong>${n}</strong><br>વિભાગ: ${data[n].dept} | શિફ્ટ: ${data[n].duty}</div>`;
-        }
-    });
-
-    function searchDuty() {
-        let q = document.getElementById('userSearch').value.toLowerCase();
-        let res = document.getElementById('searchResult');
-        if(q.length < 2) return res.innerHTML = '';
-        db.ref('duty/' + today).once('value', (snap) => {
-            let data = snap.val() || {};
-            let found = Object.keys(data).find(n => n.toLowerCase().includes(q));
-            if(found) {
-                res.innerHTML = `<div class="card" style="border-color:green"><strong>${found}</strong><br>ડ્યુટી: ${data[found].dept} - ${data[found].duty}</div>`;
+        nameInput.addEventListener('input', (e) => {
+            let val = e.target.value.toLowerCase();
+            suggBox.innerHTML = '';
+            if(!val) { suggBox.style.display = 'none'; return; }
+            
+            let matches = staffList.filter(s => s.toLowerCase().includes(val));
+            if(matches.length > 0) {
+                matches.forEach(m => {
+                    let div = document.createElement('div');
+                    div.innerText = m;
+                    div.onclick = () => { nameInput.value = m; suggBox.style.display = 'none'; };
+                    suggBox.appendChild(div);
+                });
+                suggBox.style.display = 'block';
             } else {
-                res.innerHTML = `<div class="card" style="color:red; border-color:red;">તમારી ડ્યુટી મળી નથી. પ્રકાશ સર (+91 99839 43035) નો સંપર્ક કરો.</div>`;
+                suggBox.style.display = 'none';
             }
         });
-    }
 
-    function showTab(t) {
-        document.getElementById('dutyTab').style.display = t === 'duty' ? 'block' : 'none';
-        document.getElementById('staffTab').style.display = t === 'staff' ? 'block' : 'none';
-        document.getElementById('btn1').className = t === 'duty' ? 'tab-btn active-tab' : 'tab-btn';
-        document.getElementById('btn2').className = t === 'staff' ? 'tab-btn active-tab' : 'tab-btn';
-    }
+        function handleLogin() {
+            const name = nameInput.value;
+            const pass = document.getElementById('admin-pass').value;
 
-    function toggleAdmin() {
-        let a = document.getElementById('adminArea');
-        a.style.display = a.style.display === 'block' ? 'none' : 'block';
-    }
+            if(!name) { alert("મહેરબાની કરી નામ લખો"); return; }
 
-    function genReport() {
-        let month = today.substring(0, 7);
-        db.ref('duty').once('value', (snap) => {
-            let all = snap.val() || {};
-            let rep = {};
-            allStaff.forEach(s => rep[s] = {p:0, o:0});
-            for(let d in all) {
-                if(d.startsWith(month)) {
-                    for(let n in all[d]) {
-                        if(rep[n]) {
-                            if(all[d][n].dept === 'OFF') rep[n].o++; else rep[n].p++;
-                        }
-                    }
-                }
+            if(pass === "14052001") {
+                alert("Welcome Admin! Redirecting to setup...");
+                // અહિયાં એડમિન પેજની લિંક આવશે
+            } else {
+                alert(name + ", તમારી ડ્યુટી ચેક કરી રહ્યા છીએ...");
+                // અહિયાં સ્ટાફ વ્યુ પેજ આવશે
             }
-            let h = "";
-            for(let n in rep) h += `<tr><td>${n}</td><td style="color:green">${rep[n].p}</td><td style="color:red">${rep[n].o}</td></tr>`;
-            document.getElementById('reportTbody').innerHTML = h;
-            document.getElementById('reportView').style.display = 'block';
-        });
-    }
-</script>
+        }
+    </script>
 </body>
 </html>
